@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="进度追踪">
+<meta name="theme-color" content="#6c5ce7">
+<meta name="description" content="项目进度管理工具 - 追踪你的每一个目标">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>进度追踪</title>
+<style>
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface2: #f0f1f5;
+  --border: #e2e4ea;
+  --text: #1a1d2e;
+  --text2: #7c7f8e;
+  --accent: #6c5ce7;
+  --accent2: #a29bfe;
+  --green: #00b894;
+  --red: #ff6b6b;
+  --orange: #fdcb6e;
+  --blue: #74b9ff;
+  --radius: 14px;
+  --shadow: 0 2px 16px rgba(0,0,0,.06);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  padding-top: var(--safe-top); padding-bottom: var(--safe-bottom);
+}
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.app { max-width: 500px; margin: 0 auto; padding: 16px; padding-bottom: 90px; }
+
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0 16px;
+}
+.header h1 { font-size: 22px; font-weight: 700; }
+.header h1 span { color: var(--accent); }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text2); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.icon-btn:active { transform: scale(.92); }
+.icon-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.overall-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.overall-title { font-size: 13px; color: var(--text2); margin-bottom: 10px; font-weight: 600; }
+.overall-num { font-size: 36px; font-weight: 700; color: var(--accent); line-height: 1; }
+.overall-num span { font-size: 18px; font-weight: 400; }
+.overall-bar { height: 10px; background: var(--surface2); border-radius: 5px; margin-top: 12px; overflow: hidden; }
+.overall-bar-fill { height: 100%; border-radius: 5px; transition: width .4s ease; }
+
+.stats-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.stat-item {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px; text-align: center;
+}
+.stat-num { font-size: 20px; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.stat-num.green { color: var(--green); }
+.stat-num.orange { color: var(--orange); }
+.stat-num.blue { color: var(--accent); }
+
+.search-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0 14px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.search-bar input {
+  flex: 1; border: none; background: transparent;
+  padding: 12px 0; font-size: 14px; color: var(--text);
+  outline: none; font-family: inherit;
+}
+.search-bar input::placeholder { color: var(--text2); }
+.search-icon { color: var(--text2); font-size: 16px; }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+.filter-tab {
+  padding: 6px 14px; border-radius: 20px; font-size: 13px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; white-space: nowrap;
+  transition: all .15s; font-family: inherit;
+}
+.filter-tab:active { transform: scale(.95); }
+.filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.project-list { display: flex; flex-direction: column; gap: 10px; }
+.project-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); transition: all .2s;
+  animation: fadeUp .25s ease;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(6px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.project-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.project-info { flex: 1; min-width: 0; }
+.project-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+.project-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.project-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.project-action-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: none;
+  background: var(--surface2); color: var(--text2); cursor: pointer;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.project-action-btn:active { transform: scale(.88); }
+.project-action-btn.delete:active { background: var(--red); color: #fff; }
+
+.progress-section { margin-top: 6px; }
+.progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.progress-pct { font-size: 22px; font-weight: 700; line-height: 1; }
+.progress-bar { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width .3s ease; }
+.progress-slider-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.progress-slider {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 3px; background: var(--surface2); outline: none;
+}
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(108,92,231,.3);
+}
+.progress-input {
+  width: 52px; text-align: center; padding: 4px 0;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface2); font-size: 14px; font-weight: 600;
+  color: var(--text); outline: none; font-family: inherit;
+}
+.progress-input:focus { border-color: var(--accent); }
+.project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.project-tag {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: var(--surface2); color: var(--text2);
+}
+.project-tag.color-dot { padding-left: 6px; display: flex; align-items: center; gap: 4px; }
+.project-tag .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
+.empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+.fab {
+  position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px;
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; color: #fff; font-size: 28px; cursor: pointer;
+  box-shadow: 0 4px 24px rgba(108,92,231,.35);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .2s; z-index: 100;
+}
+.fab:active { transform: scale(.9); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  backdrop-filter: blur(6px); z-index: 200; display: none;
+  align-items: flex-end; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto;
+  padding: 24px 20px calc(24px + var(--safe-bottom));
+  animation: slideUp .3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--surface2); color: var(--text2); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; font-weight: 600; }
+.form-input, .form-textarea {
+  width: 100%; padding: 11px 14px; border-radius: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 14px; font-family: inherit; outline: none;
+  transition: border-color .15s;
+}
+.form-input:focus, .form-textarea:focus { border-color: var(--accent); }
+.form-textarea { resize: vertical; min-height: 64px; }
+.color-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-opt {
+  width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent;
+  cursor: pointer; transition: all .15s;
+}
+.color-opt:active { transform: scale(.88); }
+.color-opt.selected { border-color: var(--text); box-shadow: 0 0 0 2px var(--surface); }
+.btn-row { display: flex; gap: 10px; margin-top: 24px; }
+.btn {
+  flex: 1; padding: 13px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: all .15s; font-family: inherit;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.btn-danger { background: rgba(255,107,107,.12); color: var(--red); }
+
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  backdrop-filter: blur(6px); z-index: 250; display: none;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.confirm-overlay.show { display: flex; }
+.confirm-box {
+  background: var(--surface); border-radius: 16px;
+  padding: 28px 24px; width: 100%; max-width: 320px; text-align: center;
+}
+.confirm-msg { font-size: 15px; margin-bottom: 20px; line-height: 1.6; }
+.confirm-btns { display: flex; gap: 10px; }
+
+.toast {
+  position: fixed; top: calc(20px + var(--safe-top)); left: 50%; transform: translateX(-50%);
+  padding: 10px 20px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-size: 13px; z-index: 300;
+  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  animation: toastAnim 2.5s ease forwards; pointer-events: none;
+  white-space: nowrap;
+}
+@keyframes toastAnim {
+  0% { opacity:0; transform: translateX(-50%) translateY(-10px); }
+  12% { opacity:1; transform: translateX(-50%) translateY(0); }
+  85% { opacity:1; }
+  100% { opacity:0; }
+}
+
+.theme-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-dot {
+  width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--border);
+  cursor: pointer; transition: all .15s;
+}
+.theme-dot:active { transform: scale(.88); }
+.theme-dot.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(108,92,231,.3); }
+
+.install-banner {
+  background: linear-gradient(135deg, rgba(108,92,231,.1), rgba(162,155,254,.1));
+  border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 14px; display: none;
+  align-items: center; gap: 10px; font-size: 13px;
+}
+.install-banner.show { display: flex; }
+.install-banner button {
+  padding: 6px 14px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff; font-size: 12px;
+  cursor: pointer; white-space: nowrap; font-family: inherit; font-weight: 600;
+}
+.install-banner .dismiss {
+  background: transparent; color: var(--text2); font-size: 16px;
+  padding: 0 4px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="install-banner" id="installBanner">
+    <span>📲 添加到主屏幕，像原生 App 一样使用</span>
+    <button onclick="installApp()">安装</button>
+    <button class="dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <div class="header">
+    <h1>📊 <span>进度追踪</span></h1>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openThemeModal()" title="主题设置">🎨</button>
+    </div>
+  </div>
+
+  <div class="overall-card">
+    <div class="overall-title">总进度</div>
+    <div class="overall-num" id="overallPct">0<span>%</span></div>
+    <div class="overall-bar">
+      <div class="overall-bar-fill" id="overallBar" style="width:0;background:var(--accent)"></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-num blue" id="statTotal">0</div>
+      <div class="stat-label">总项目</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num green" id="statDone">0</div>
+      <div class="stat-label">已完成</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num orange" id="statActive">0</div>
+      <div class="stat-label">进行中</div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜索项目..." oninput="render()">
+  </div>
+
+  <div class="filter-row" id="filterRow">
+    <button class="filter-tab active" data-filter="all">全部</button>
+    <button class="filter-tab" data-filter="active">进行中</button>
+    <button class="filter-tab" data-filter="done">已完成</button>
+    <button class="filter-tab" data-filter="high">高进度</button>
+    <button class="filter-tab" data-filter="low">低进度</button>
+  </div>
+
+  <div class="project-list" id="projectList"></div>
+</div>
+
+<button class="fab" onclick="openAddModal()" title="新建项目">+</button>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">新建项目</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="editId">
+    <div class="form-group">
+      <label class="form-label">项目名称 *</label>
+      <input class="form-input" id="projName" placeholder="例如：学习 Flutter" maxlength="50">
+    </div>
+    <div class="form-group">
+      <label class="form-label">描述（选填）</label>
+      <textarea class="form-textarea" id="projDesc" placeholder="补充说明..." rows="2"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">颜色标记</label>
+      <div class="color-options" id="colorOptions">
+        <div class="color-opt selected" data-color="#6c5ce7" style="background:#6c5ce7" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#00b894" style="background:#00b894" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#ff6b6b" style="background:#ff6b6b" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#fdcb6e" style="background:#fdcb6e" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#74b9ff" style="background:#74b9ff" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#e84393" style="background:#e84393" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#00cec9" style="background:#00cec9" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#636e72" style="background:#636e72" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">标签（选填，逗号分隔）</label>
+      <input class="form-input" id="projTags" placeholder="例如：学习, 编程">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveProject()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Theme Modal -->
+<div class="modal-overlay" id="themeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">主题设置</div>
+      <button class="modal-close" onclick="closeThemeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">选择主题</label>
+      <div class="theme-row">
+        <div class="theme-dot active" data-theme="light" style="background:linear-gradient(135deg,#f5f6fa,#e8eaf0)" onclick="setTheme(this)"></div>
+        <div class="theme-dot" data-theme="warm" style="background:linear-gradient(135deg,#fef9f0,#f5edd8)" onclick="setTheme(this)"></div>
+        <div class="theme-dot" data-theme="cool" style="background:linear-gradient(135deg,#f0f4ff,#dce4ff)" onclick="setTheme(this)"></div>
+        <div class="theme-dot" data-theme="mint" style="background:linear-gradient(135deg,#f0fff8,#d4f0e2)" onclick="setTheme(this)"></div>
+        <div class="theme-dot" data-theme="rose" style="background:linear-gradient(135deg,#fff0f3,#ffd6df)" onclick="setTheme(this)"></div>
+        <div class="theme-dot" data-theme="dark" style="background:linear-gradient(135deg,#1a1a2e,#242435)" onclick="setTheme(this)"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="closeThemeModal()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="confirmCancel()">取消</button>
+      <button class="btn btn-danger" id="confirmOk" onclick="confirmOkAction()">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'progress_projects';
+const THEME_KEY = 'progress_theme';
+const MAX_PROJECTS = 100;
+
+let projects = [];
+let currentFilter = 'all';
+let selectedColor = '#6c5ce7';
+let confirmCallback = null;
+let deferredPrompt = null;
+
+const themes = {
+  light: { bg:'#f5f6fa', surface:'#ffffff', surface2:'#f0f1f5', border:'#e2e4ea', text:'#1a1d2e', text2:'#7c7f8e', accent:'#6c5ce7', accent2:'#a29bfe' },
+  warm:  { bg:'#fdf8f0', surface:'#fff9f0', surface2:'#f5edd8', border:'#e8dcc4', text:'#2d2416', text2:'#8a7a60', accent:'#e17055', accent2:'#fab1a0' },
+  cool:  { bg:'#f0f4ff', surface:'#e8edff', surface2:'#dce4ff', border:'#c8d4f0', text:'#1a1e3a', text2:'#6068a0', accent:'#4a6cf7', accent2:'#7c96ff' },
+  mint:  { bg:'#f0fff8', surface:'#e8faf2', surface2:'#d4f0e2', border:'#b8e0cc', text:'#1a2e24', text2:'#5a8a70', accent:'#00b894', accent2:'#55efc4' },
+  rose:  { bg:'#fff5f7', surface:'#ffe8ed', surface2:'#ffd6df', border:'#f0b8c4', text:'#2e1a20', text2:'#a06070', accent:'#e84393', accent2:'#fd79a8' },
+  dark:  { bg:'#0f0f13', surface:'#1a1a24', surface2:'#242435', border:'#2e2e42', text:'#e8e8f0', text2:'#8888a8', accent:'#6c5ce7', accent2:'#a29bfe' },
+};
+
+function loadProjects() {
+  try { projects = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e) { projects = []; }
+}
+function saveProjects() { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
+
+function loadTheme() {
+  try { return localStorage.getItem(THEME_KEY) || 'light'; }
+  catch(e) { return 'light'; }
+}
+function applyTheme(name) {
+  const t = themes[name] || themes.light;
+  const r = document.documentElement.style;
+  r.setProperty('--bg', t.bg);
+  r.setProperty('--surface', t.surface);
+  r.setProperty('--surface2', t.surface2);
+  r.setProperty('--border', t.border);
+  r.setProperty('--text', t.text);
+  r.setProperty('--text2', t.text2);
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--accent2', t.accent2);
+  r.setProperty('--shadow', name === 'dark' ? '0 2px 16px rgba(0,0,0,.3)' : '0 2px 16px rgba(0,0,0,.06)');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t.accent);
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.toggle('active', d.dataset.theme === name));
+}
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let list = projects.filter(p => !q || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q) || (p.tags||[]).some(t => t.toLowerCase().includes(q)));
+  switch(currentFilter) {
+    case 'active': return list.filter(p => p.progress < 100);
+    case 'done': return list.filter(p => p.progress >= 100);
+    case 'high': return list.filter(p => p.progress >= 70);
+    case 'low': return list.filter(p => p.progress < 30 && p.progress > 0);
+    default: return list;
+  }
+}
+
+function progressColor(pct) {
+  if (pct >= 100) return 'var(--green)';
+  if (pct >= 70) return 'var(--accent)';
+  if (pct >= 40) return 'var(--orange)';
+  return 'var(--blue)';
+}
+
+function render() {
+  const list = getFiltered();
+  list.sort((a,b) => {
+    if (a.progress >= 100 && b.progress < 100) return 1;
+    if (a.progress < 100 && b.progress >= 100) return -1;
+    return (b.updatedAt||0) - (a.updatedAt||0);
+  });
+
+  const total = projects.length;
+  const done = projects.filter(p => p.progress >= 100).length;
+  const active = total - done;
+  const overall = total > 0 ? Math.round(projects.reduce((s,p) => s + p.progress, 0) / total) : 0;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statActive').textContent = active;
+  document.getElementById('overallPct').innerHTML = overall + '<span>%</span>';
+  const bar = document.getElementById('overallBar');
+  bar.style.width = overall + '%';
+  bar.style.background = progressColor(overall);
+
+  const container = document.getElementById('projectList');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📌</div><p>' + (projects.length === 0 ? '还没有项目，点击右下角 + 创建第一个' : '没有匹配的项目') + '</p></div>';
+    return;
+  }
+
+  container.innerHTML = list.map(p => {
+    const color = p.color || '#6c5ce7';
+    const pct = p.progress;
+    const tags = (p.tags || []).map(t => '<span class="project-tag">' + esc(t) + '</span>').join('');
+    return '<div class="project-card"><div class="project-top"><div class="project-info"><div class="project-name">' + esc(p.name) + '</div>' + (p.desc ? '<div class="project-desc">' + esc(p.desc) + '</div>' : '') + '</div><div class="project-actions"><button class="project-action-btn" onclick="openEditModal(\'' + p.id + '\')" title="编辑">✏️</button><button class="project-action-btn delete" onclick="deleteProject(\'' + p.id + '\')" title="删除">🗑️</button></div></div><div class="progress-section"><div class="progress-header"><div class="progress-pct" style="color:' + progressColor(pct) + '">' + pct + '%</div></div><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%;background:' + color + '"></div></div><div class="progress-slider-row"><input type="range" class="progress-slider" min="0" max="100" value="' + pct + '" oninput="updateProgress(\'' + p.id + '\',this.value);this.nextElementSibling.value=this.value"><input type="number" class="progress-input" min="0" max="100" value="' + pct + '" onchange="updateProgress(\'' + p.id + '\',this.value);this.previousElementSibling.value=this.value"></div></div><div class="project-tags"><span class="project-tag color-dot"><span class="dot" style="background:' + color + '"></span></span>' + tags + '</div></div>';
+  }).join('');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function updateProgress(id, val) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  p.progress = Math.max(0, Math.min(100, parseInt(val) || 0));
+  p.updatedAt = Date.now();
+  saveProjects();
+  render();
+}
+
+function openAddModal() {
+  if (projects.length >= MAX_PROJECTS) { showToast('项目已达上限 ' + MAX_PROJECTS + ' 个'); return; }
+  document.getElementById('modalTitle').textContent = '新建项目';
+  document.getElementById('editId').value = '';
+  document.getElementById('projName').value = '';
+  document.getElementById('projDesc').value = '';
+  document.getElementById('projTags').value = '';
+  selectedColor = '#6c5ce7';
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.toggle('selected', c.dataset.color === selectedColor));
+  document.getElementById('projectModal').classList.add('show');
+  setTimeout(() => document.getElementById('projName').focus(), 300);
+}
+
+function openEditModal(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modalTitle').textContent = '编辑项目';
+  document.getElementById('editId').value = p.id;
+  document.getElementById('projName').value = p.name;
+  document.getElementById('projDesc').value = p.desc || '';
+  document.getElementById('projTags').value = (p.tags || []).join(', ');
+  selectedColor = p.color || '#6c5ce7';
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.toggle('selected', c.dataset.color === selectedColor));
+  document.getElementById('projectModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('projectModal').classList.remove('show'); }
+
+function selectColor(el) {
+  selectedColor = el.dataset.color;
+  document.querySelectorAll('.color-opt').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveProject() {
+  const name = document.getElementById('projName').value.trim();
+  if (!name) { showToast('请填写项目名称'); document.getElementById('projName').focus(); return; }
+  const desc = document.getElementById('projDesc').value.trim();
+  const tagsStr = document.getElementById('projTags').value.trim();
+  const tags = tagsStr ? tagsStr.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
+  const editId = document.getElementById('editId').value;
+
+  if (editId) {
+    const p = projects.find(x => x.id === editId);
+    if (p) { p.name = name; p.desc = desc; p.tags = tags; p.color = selectedColor; p.updatedAt = Date.now(); }
+    showToast('项目已更新');
+  } else {
+    projects.push({ id: genId(), name, desc, tags, color: selectedColor, progress: 0, createdAt: Date.now(), updatedAt: Date.now() });
+    showToast('项目已创建');
+  }
+  saveProjects();
+  closeModal();
+  render();
+}
+
+function deleteProject(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  showConfirm('确定删除「' + p.name + '」吗？', () => {
+    projects = projects.filter(x => x.id !== id);
+    saveProjects();
+    render();
+    showToast('已删除');
+  });
+}
+
+document.getElementById('filterRow').addEventListener('click', e => {
+  const tab = e.target.closest('.filter-tab');
+  if (!tab) return;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  currentFilter = tab.dataset.filter;
+  render();
+});
+
+function openThemeModal() { document.getElementById('themeModal').classList.add('show'); }
+function closeThemeModal() { document.getElementById('themeModal').classList.remove('show'); }
+function setTheme(el) {
+  const name = el.dataset.theme;
+  localStorage.setItem(THEME_KEY, name);
+  applyTheme(name);
+}
+
+function showConfirm(msg, cb) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmDialog').classList.add('show');
+  confirmCallback = cb;
+}
+function confirmOkAction() {
+  document.getElementById('confirmDialog').classList.remove('show');
+  if (confirmCallback) confirmCallback();
+  confirmCallback = null;
+}
+function confirmCancel() {
+  document.getElementById('confirmDialog').classList.remove('show');
+  confirmCallback = null;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2700);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
+});
+document.getElementById('confirmDialog').addEventListener('click', e => {
+  if (e.target === document.getElementById('confirmDialog')) confirmCancel();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show, .confirm-overlay.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('install_dismissed')) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+});
+
+function installApp() {
+  if (!deferredPrompt) { showToast('请使用浏览器菜单中的"添加到主屏幕"'); return; }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') showToast('安装成功！');
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('install_dismissed', '1');
+}
+
+loadProjects();
+applyTheme(loadTheme());
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
